@@ -124,7 +124,7 @@ if build_tetra:
 # start computing gene distances
 if build_dist:
     M_DRAWS = 1000  # number of Monte Carlo draws to do
-    FIG_FILE = './MHL7_tetra.png'
+    FIG_FILE = '../MHL7_tetra.png'
 
     up_name = lambda l: l.split(',')[0].strip()
     up_tet = lambda l: [float(i) for i in l.split(',')[1:]]
@@ -168,8 +168,16 @@ if build_dist:
     gd = lambda g1, g2: min_dist(rand_genes(g1, M_DRAWS), g2, \
       allow_zero=(set(g1).intersection(g2) == set()))
 
-    #gene_list = ['pr', 'pufM', 'pufL']
-    gene_list = all_genes
+    #TODO: no cerI in this list?
+    gene_list = ['psaA', 'psaB', 'psbA', 'psbB', 'pufM', 'pufL', 'pr', 'pioA',
+                 'pioC', 'iro', 'coxB', 'ompC', 'arch_amoA', 'bact_amoA',
+                 'mmoZ', 'hszA', 'sqR-allo', 'sqR-rhodo', 'narG', 'nirK',
+                 'dsrA', 'dsrB', 'mcrA', 'frhB', 'cdhD', 'fdhA', 'mvK', 'dxr',
+                 'gggps', 'sqdB', 'cdsA-allo', 'cdsA-geo', 'cdsA-rhodo',
+                 'cdsA-synn', 'mglcD', 'mgdA', 'btaA', 'olsB', 'shc', 'osc',
+                 'casI', 'crtI-allo', 'crtI-rhodo', 'crtP', 'nifH', 'luxI',
+                 'raiI', 'por', 'bchF', 'rpoA', 'rpoB']
+    #gene_list = all_genes
 
     gs = gridspec.GridSpec(len(gene_list), len(gene_list))
     gs.update(wspace=0, hspace=0)
