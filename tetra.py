@@ -28,8 +28,8 @@ DIST_FILE = "../MHL7_hmm_dist.txt"
 
 build_orfs = False
 build_hmmdb = False
-build_tetra = True
-build_dist = False
+build_tetra = False
+build_dist = True
 
 
 if build_orfs:
@@ -54,6 +54,9 @@ if build_hmmdb:
 
 if build_tetra:
     def rc(seq):  # reverse complement
+        """
+        Function finds reverse complement of a sequence.
+        """
         invert_table = {'A': 'T', 'T': 'A', 'C': 'G', 'G': 'C'}
         return ''.join(invert_table.get(i, 'N') for i in seq[::-1])
 
@@ -68,6 +71,7 @@ if build_tetra:
             buf = buf[1:] + l
         yield buf
 
+    # generate a mapping to merge reverse complement tetranucleotides
     seq_map = {'': 4 * 'N'}
     for s in (''.join(i) for i in itertools.product(*(4 * ['ATGC']))):
         if rc(s) not in seq_map or s not in seq_map:
@@ -84,6 +88,7 @@ if build_tetra:
     for i in range(7):
         f.readline()
 
+    # make a dictionary to map genes back to their contigs
     gene2contig = {}
     for ln in f:
         flds = ln.strip().split('\t')
@@ -123,12 +128,16 @@ if build_tetra:
 
 # start computing gene distances
 if build_dist:
-    M_DRAWS = 1000  # number of Monte Carlo draws to do
+    M_DRAWS = 100  # number of Monte Carlo draws to do
+    G_SAMP = 100  # number of each of both genes to sample in each draw
     FIG_FILE = '../MHL7_tetra.png'
 
+    # convenience functions to return a gene name or
+    # its tetranucleotide array
     up_name = lambda l: l.split(',')[0].strip()
     up_tet = lambda l: [float(i) for i in l.split(',')[1:]]
 
+    # first, get a count of how many of each gene there are
     with open(TETRA_FILE, 'r') as f:
         # how many dimensions are in each tetra score?
         tetlen = len(f.readline().split(',')) - 1
@@ -137,9 +146,18 @@ if build_dist:
         gene_ct = Counter(up_name(l) for l in f)
     all_genes = set(gene_ct)
 
-    def rand_genes(genes, n=1):
+    def rnd_genes(genes, n=1):
+        """
+        Pick n random HMMER-identified "genes" with replacement
+        from the gene-tetranucleotide file.
+
+        If genes = None, pick any gene randomly.
+        """
         # how many genes are there total?
-        ngenes = sum(gene_ct[g] for g in set(genes))
+        if genes is None:
+            ngenes = sum(gene_ct.values())
+        else:
+            ngenes = sum(gene_ct[g] for g in set(genes))
         # randomly pick genes from the collection
         gene_nums = np.random.randint(ngenes, size=(n,))
         with open(TETRA_FILE, 'r') as f:
@@ -147,26 +165,51 @@ if build_dist:
             c = 0
             tetra = np.empty((n, tetlen), dtype=float)
             for l in f:
-                if up_name(l) in genes:
+                if up_name(l) in genes or genes is None:
                     tetra[np.where(gene_nums == c)[0]] = up_tet(l)
                     c += 1
         return tetra
 
-    def min_dist(tet, genes, allow_zero=True):
-        with open(TETRA_FILE, 'r') as f:
-            f.readline()  # skip the header line
-            dist = np.inf * np.ones(len(tet))
-            for l in f:
-                if up_name(l) in genes:
-                    # euc dist from all tetra to this pt
-                    ndist = np.sqrt(np.sum((tet - up_tet(l)) ** 2, axis=1))
-                    if not allow_zero:
-                        ndist[np.where(ndist == 0)] = np.inf
-                    dist = np.min([dist, ndist], axis=0)
-        return dist
+    #def min_dist(tet, genes, allow_zero=True):
+    #    with open(TETRA_FILE, 'r') as f:
+    #        f.readline()  # skip the header line
+    #        dist = np.inf * np.ones(len(tet))
+    #        for l in f:
+    #            if up_name(l) in genes:
+    #                # euc dist from all tetra to this pt
+    #                ndist = np.sqrt(np.sum((tet - up_tet(l)) ** 2, axis=1))
+    #                if not allow_zero:
+    #                    ndist[np.where(ndist == 0)] = np.inf
+    #                dist = np.min([dist, ndist], axis=0)
+    #    return dist
 
-    gd = lambda g1, g2: min_dist(rand_genes(g1, M_DRAWS), g2, \
-      allow_zero=(set(g1).intersection(g2) == set()))
+    #def min_dist_rand(tet, n, allow_zero=True):
+    #    with open(TETRA_FILE, 'r') as f:
+    #        gene_nums = np.random.randint(sum(gene_ct.values()), size=(n,))
+    #        f.readline()  # skip the header line
+    #        dist = np.inf * np.ones(len(tet))
+    #        for i, l in enumerate(f):
+    #            if i in gene_nums:
+    #                # euc dist from all tetra to this pt
+    #                ndist = np.sqrt(np.sum((tet - up_tet(l)) ** 2, axis=1))
+    #                if not allow_zero:
+    #                    ndist[np.where(ndist == 0)] = np.inf
+    #                dist = np.min([dist, ndist], axis=0)
+    #    return dist
+
+    #gd = lambda g1, g2: min_dist(rand_genes(g1, M_DRAWS), g2)
+
+    #gdr = lambda g1, g2: min_dist(rand_genes(g1, M_DRAWS), gene_ct[g2])
+
+    def min_dst(tet1, tet2, allow_zero=True):
+        dists = np.empty(tet1.shape[0])
+        for i, t1 in enumerate(tet1):
+            min_dist = np.sum((tet2 - t1) ** 2, axis=1)
+            if not allow_zero:
+                dists[i] = np.min(min_dist[min_dist != 0])
+            else:
+                dists[i] = np.min(min_dist)
+        return dists
 
     #TODO: no cerI in this list?
     gene_list = ['psaA', 'psaB', 'psbA', 'psbB', 'pufM', 'pufL', 'pr', 'pioA',
@@ -190,8 +233,12 @@ if build_dist:
               va='top', ha='center', transform=ax.transAxes)
             ax.get_xaxis().set_visible(False)
             ax.get_yaxis().set_visible(False)
-            dist = gd([g1], [g2])
-            ctrl = gd([g1, g2], [g1, g2])
+            dist, ctrl = [], []
+            for _ in range(M_DRAWS):
+                dist += min_dst(rnd_genes(g1, G_SAMP), rnd_genes(g2, G_SAMP))
+                ctrl += min_dst(rnd_genes(g1, G_SAMP), rnd_genes(None, G_SAMP))
+            #dist = gd([g1], [g2])
+            #ctrl = gd([g1, g2], [g1, g2])
             ax.plot(xs, gaussian_kde(dist)(xs), 'k-')
             ax.plot(xs, gaussian_kde(ctrl)(xs), 'r-')
             #TODO: scipy.stats.mannwhitneyu(dist, ctrl)
