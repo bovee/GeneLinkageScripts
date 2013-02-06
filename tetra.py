@@ -9,7 +9,6 @@ import subprocess
 from collections import Counter
 from glob import iglob
 
-import screed
 import numpy as np
 from scipy.stats import gaussian_kde
 import matplotlib.pyplot as plt
@@ -53,6 +52,7 @@ if build_hmmdb:
     subprocess.call(["hmmscan", "--tblout", GENE_FILE, GENE_DB, GFA_FILE])
 
 if build_tetra:
+    import screed
     def rc(seq):  # reverse complement
         """
         Function finds reverse complement of a sequence.
@@ -146,15 +146,15 @@ if build_dist:
         gene_ct = Counter(up_name(l) for l in f)
     all_genes = set(gene_ct)
 
-    def rnd_genes(genes, n=1):
+    def rnd_genes(genes=[], n=1):
         """
         Pick n random HMMER-identified "genes" with replacement
         from the gene-tetranucleotide file.
 
-        If genes = None, pick any gene randomly.
+        If genes == [] pick from all genes.
         """
         # how many genes are there total?
-        if genes is None:
+        if genes == []:
             ngenes = sum(gene_ct.values())
         else:
             ngenes = sum(gene_ct[g] for g in set(genes))
@@ -165,41 +165,10 @@ if build_dist:
             c = 0
             tetra = np.empty((n, tetlen), dtype=float)
             for l in f:
-                if up_name(l) in genes or genes is None:
+                if up_name(l) in genes or genes == []:
                     tetra[np.where(gene_nums == c)[0]] = up_tet(l)
                     c += 1
         return tetra
-
-    #def min_dist(tet, genes, allow_zero=True):
-    #    with open(TETRA_FILE, 'r') as f:
-    #        f.readline()  # skip the header line
-    #        dist = np.inf * np.ones(len(tet))
-    #        for l in f:
-    #            if up_name(l) in genes:
-    #                # euc dist from all tetra to this pt
-    #                ndist = np.sqrt(np.sum((tet - up_tet(l)) ** 2, axis=1))
-    #                if not allow_zero:
-    #                    ndist[np.where(ndist == 0)] = np.inf
-    #                dist = np.min([dist, ndist], axis=0)
-    #    return dist
-
-    #def min_dist_rand(tet, n, allow_zero=True):
-    #    with open(TETRA_FILE, 'r') as f:
-    #        gene_nums = np.random.randint(sum(gene_ct.values()), size=(n,))
-    #        f.readline()  # skip the header line
-    #        dist = np.inf * np.ones(len(tet))
-    #        for i, l in enumerate(f):
-    #            if i in gene_nums:
-    #                # euc dist from all tetra to this pt
-    #                ndist = np.sqrt(np.sum((tet - up_tet(l)) ** 2, axis=1))
-    #                if not allow_zero:
-    #                    ndist[np.where(ndist == 0)] = np.inf
-    #                dist = np.min([dist, ndist], axis=0)
-    #    return dist
-
-    #gd = lambda g1, g2: min_dist(rand_genes(g1, M_DRAWS), g2)
-
-    #gdr = lambda g1, g2: min_dist(rand_genes(g1, M_DRAWS), gene_ct[g2])
 
     def min_dst(tet1, tet2, allow_zero=True):
         dists = np.empty(tet1.shape[0])
@@ -225,9 +194,13 @@ if build_dist:
     gs = gridspec.GridSpec(len(gene_list), len(gene_list))
     gs.update(wspace=0, hspace=0)
     xs = np.linspace(0, 0.1, 200)
+    samp_dist = lambda g1, g2: min_dst(rnd_genes(g1, G_SAMP), \
+                                       rnd_genes(g2, G_SAMP))
 
     for i, g1 in enumerate(gene_list):
+        print('out', g1)
         for j, g2 in enumerate(gene_list):
+            print('in', g2)
             ax = plt.subplot(gs[i + j * len(gene_list)])
             ax.text(0.5, 0.95, g1 + '->' + g2, fontsize=2, \
               va='top', ha='center', transform=ax.transAxes)
@@ -235,8 +208,9 @@ if build_dist:
             ax.get_yaxis().set_visible(False)
             dist, ctrl = [], []
             for _ in range(M_DRAWS):
-                dist += min_dst(rnd_genes(g1, G_SAMP), rnd_genes(g2, G_SAMP))
-                ctrl += min_dst(rnd_genes(g1, G_SAMP), rnd_genes(None, G_SAMP))
+                print('here')
+                dist += list(samp_dist([g1], [g2]))
+                ctrl += list(samp_dist([g1], []))
             #dist = gd([g1], [g2])
             #ctrl = gd([g1, g2], [g1, g2])
             ax.plot(xs, gaussian_kde(dist)(xs), 'k-')
