@@ -212,7 +212,7 @@ if build_dist:
                  'cdsA-synn', 'mglcD', 'mgdA', 'btaA', 'olsB', 'shc', 'osc',
                  'cas1', 'crtI-allo', 'crtI-rhodo', 'crtP', 'nifH', 'luxI',
                  'raiI', 'por', 'bchF', 'rpoA', 'rpoB']
-    gene_list = [g for g in gene_list if gene_ct[g] >= 50]
+    gene_list = [g for g in gene_list if gene_ct[g] >= 30]
     #gene_list = ['osc', 'shc', 'dsrA', 'dsrB']
     #gene_list = all_genes
 
