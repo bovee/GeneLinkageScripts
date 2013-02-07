@@ -6,11 +6,13 @@ import os
 import shutil
 import itertools
 import subprocess
-from collections import Counter
+#from collections import Counter
 from glob import iglob
+from functools import partial
+from multiprocessing import Pool
 
 import numpy as np
-from scipy.stats import gaussian_kde
+from scipy.stats import gaussian_kde, mannwhitneyu
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
@@ -53,6 +55,7 @@ if build_hmmdb:
 
 if build_tetra:
     import screed
+
     def rc(seq):  # reverse complement
         """
         Function finds reverse complement of a sequence.
@@ -135,16 +138,28 @@ if build_dist:
     # convenience functions to return a gene name or
     # its tetranucleotide array
     up_name = lambda l: l.split(',')[0].strip()
-    up_tet = lambda l: [float(i) for i in l.split(',')[1:]]
+    up_tet = lambda l: np.array([float(i) for i in l.split(',')[1:]])
 
     # first, get a count of how many of each gene there are
     with open(TETRA_FILE, 'r') as f:
         # how many dimensions are in each tetra score?
         tetlen = len(f.readline().split(',')) - 1
-
-        # get a count of how many of each gene there are
-        gene_ct = Counter(up_name(l) for l in f)
-    all_genes = set(gene_ct)
+        gene_names, gene_ids = {}, []
+        #gene_ct = Counter()
+        for l in f:
+            gene_name = up_name(l)
+            #gene_ct[gene_name] += 1
+            if gene_name not in gene_names:
+                gene_names[gene_name] = len(gene_names)
+            gene_ids.append(gene_names[gene_name])
+        gene_ids = np.array(gene_ids)
+        f.seek(0)
+        f.readline()
+        gene_tetra = np.empty((len(gene_ids), tetlen))
+        for i, l in enumerate(f):
+            gene_tetra[i] = up_tet(l)
+    # get a count of how many of each gene there are
+    print('Done buffering')
 
     def rnd_genes(genes=[], n=1):
         """
@@ -155,19 +170,15 @@ if build_dist:
         """
         # how many genes are there total?
         if genes == []:
-            ngenes = sum(gene_ct.values())
+            sel_genes = np.ones(gene_ids.shape, dtype=bool)
         else:
-            ngenes = sum(gene_ct[g] for g in set(genes))
+            sel_genes = np.zeros(gene_ids.shape, dtype=bool)
+            for gene in genes:
+                sel_genes = np.logical_or(sel_genes, \
+                                          gene_ids == gene_names[gene])
         # randomly pick genes from the collection
-        gene_nums = np.random.randint(ngenes, size=(n,))
-        with open(TETRA_FILE, 'r') as f:
-            f.readline()  # skip the header line
-            c = 0
-            tetra = np.empty((n, tetlen), dtype=float)
-            for l in f:
-                if up_name(l) in genes or genes == []:
-                    tetra[np.where(gene_nums == c)[0]] = up_tet(l)
-                    c += 1
+        rand_picks = np.random.randint(sum(sel_genes), size=(n,))
+        tetra = gene_tetra[sel_genes][rand_picks]
         return tetra
 
     def min_dst(tet1, tet2, allow_zero=True):
@@ -180,6 +191,18 @@ if build_dist:
                 dists[i] = np.min(min_dist)
         return dists
 
+    def samp_dist(gene2, gene1):
+        tet1 = rnd_genes([gene1], G_SAMP)
+        if gene2 is None:
+            g2 = []
+        else:
+            g2 = [gene2]
+        tet2 = rnd_genes(g2, G_SAMP)
+        dist = []
+        for _ in range(M_DRAWS):
+            dist += list(min_dst(tet1, tet2, allow_zero=(gene1 != gene2)))
+        return dist
+
     #TODO: no cerI in this list?
     gene_list = ['psaA', 'psaB', 'psbA', 'psbB', 'pufM', 'pufL', 'pr', 'pioA',
                  'pioC', 'iro', 'coxB', 'ompC', 'arch_amoA', 'bact_amoA',
@@ -187,34 +210,37 @@ if build_dist:
                  'dsrA', 'dsrB', 'mcrA', 'frhB', 'cdhD', 'fdhA', 'mvK', 'dxr',
                  'gggps', 'sqdB', 'cdsA-allo', 'cdsA-geo', 'cdsA-rhodo',
                  'cdsA-synn', 'mglcD', 'mgdA', 'btaA', 'olsB', 'shc', 'osc',
-                 'casI', 'crtI-allo', 'crtI-rhodo', 'crtP', 'nifH', 'luxI',
+                 'cas1', 'crtI-allo', 'crtI-rhodo', 'crtP', 'nifH', 'luxI',
                  'raiI', 'por', 'bchF', 'rpoA', 'rpoB']
+    #gene_list = ['osc', 'shc', 'dsrA', 'dsrB']
     #gene_list = all_genes
+
+    po = Pool()
 
     gs = gridspec.GridSpec(len(gene_list), len(gene_list))
     gs.update(wspace=0, hspace=0)
-    xs = np.linspace(0, 0.1, 200)
-    samp_dist = lambda g1, g2: min_dst(rnd_genes(g1, G_SAMP), \
-                                       rnd_genes(g2, G_SAMP))
+    xs = np.linspace(0, 0.005, 200)
+
+    #dist_f = partial(samp_dist, gene1='osc')
+    #dists = po.map(dist_f, ['shc'])
 
     for i, g1 in enumerate(gene_list):
-        print('out', g1)
+        dist_f = partial(samp_dist, gene1=g1)
+        dists = po.map(dist_f, gene_list)
+        ctrls = po.map(dist_f, [None] * len(gene_list))
         for j, g2 in enumerate(gene_list):
-            print('in', g2)
             ax = plt.subplot(gs[i + j * len(gene_list)])
-            ax.text(0.5, 0.95, g1 + '->' + g2, fontsize=2, \
+            mwu = mannwhitneyu(ctrls[j], dists[j])[1]
+            txt = g1 + '->' + g2 + '\np={:.2e}'.format(mwu)
+            ax.text(0.5, 0.95, txt, fontsize=2, \
               va='top', ha='center', transform=ax.transAxes)
             ax.get_xaxis().set_visible(False)
             ax.get_yaxis().set_visible(False)
-            dist, ctrl = [], []
-            for _ in range(M_DRAWS):
-                print('here')
-                dist += list(samp_dist([g1], [g2]))
-                ctrl += list(samp_dist([g1], []))
-            #dist = gd([g1], [g2])
-            #ctrl = gd([g1, g2], [g1, g2])
-            ax.plot(xs, gaussian_kde(dist)(xs), 'k-')
-            ax.plot(xs, gaussian_kde(ctrl)(xs), 'r-')
+            if sum(dists[j]) != 0:
+                #print(g1, g2, dists[j])
+                ax.plot(xs, gaussian_kde(dists[j])(xs), 'k-')
+            if sum(ctrls[j]) != 0:
+                ax.plot(xs, gaussian_kde(ctrls[j])(xs), 'r-')
             #TODO: scipy.stats.mannwhitneyu(dist, ctrl)
     plt.gcf().set_size_inches(24, 24)
     plt.savefig(FIG_FILE, dpi=300, bbox_inches='tight')
