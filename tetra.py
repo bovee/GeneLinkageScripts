@@ -131,8 +131,8 @@ if build_tetra:
 
 # start computing gene distances
 if build_dist:
-    M_DRAWS = 100  # number of Monte Carlo draws to do
-    G_SAMP = 100  # number of each of both genes to sample in each draw
+    M_DRAWS = 1000  # number of Monte Carlo draws to do
+    G_SAMP = 1000  # number of each of both genes to sample in each draw
     FIG_FILE = '../MHL7_tetra.png'
 
     # convenience functions to return a gene name or
@@ -145,10 +145,10 @@ if build_dist:
         # how many dimensions are in each tetra score?
         tetlen = len(f.readline().split(',')) - 1
         gene_names, gene_ids = {}, []
-        #gene_ct = Counter()
+        gene_ct = Counter()
         for l in f:
             gene_name = up_name(l)
-            #gene_ct[gene_name] += 1
+            gene_ct[gene_name] += 1
             if gene_name not in gene_names:
                 gene_names[gene_name] = len(gene_names)
             gene_ids.append(gene_names[gene_name])
@@ -212,6 +212,7 @@ if build_dist:
                  'cdsA-synn', 'mglcD', 'mgdA', 'btaA', 'olsB', 'shc', 'osc',
                  'cas1', 'crtI-allo', 'crtI-rhodo', 'crtP', 'nifH', 'luxI',
                  'raiI', 'por', 'bchF', 'rpoA', 'rpoB']
+    gene_list = [g for g in gene_list if gene_ct[g] >= 50]
     #gene_list = ['osc', 'shc', 'dsrA', 'dsrB']
     #gene_list = all_genes
 
