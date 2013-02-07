@@ -6,7 +6,7 @@ import os
 import shutil
 import itertools
 import subprocess
-#from collections import Counter
+from collections import Counter
 from glob import iglob
 from functools import partial
 from multiprocessing import Pool
