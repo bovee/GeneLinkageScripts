@@ -133,7 +133,7 @@ if build_tetra:
 if build_dist:
     M_DRAWS = 1000  # number of Monte Carlo draws to do
     G_SAMP = 1000  # number of each of both genes to sample in each draw
-    FIG_FILE = '../MHL7_tetra.png'
+    FIG_FILE = '../MHL7_tetra_rpoa.png'
 
     # convenience functions to return a gene name or
     # its tetranucleotide array
@@ -211,7 +211,7 @@ if build_dist:
                  'gggps', 'sqdB', 'cdsA-allo', 'cdsA-geo', 'cdsA-rhodo',
                  'cdsA-synn', 'mglcD', 'mgdA', 'btaA', 'olsB', 'shc', 'osc',
                  'cas1', 'crtI-allo', 'crtI-rhodo', 'crtP', 'nifH', 'luxI',
-                 'raiI', 'por', 'bchF', 'rpoA', 'rpoB']
+                 'raiI', 'por', 'bchF', 'rpoB']
     gene_list = [g for g in gene_list if gene_ct[g] >= 30]
     #gene_list = ['osc', 'shc', 'dsrA', 'dsrB']
     #gene_list = all_genes
@@ -222,27 +222,29 @@ if build_dist:
     gs.update(wspace=0, hspace=0)
     xs = np.linspace(0, 0.005, 200)
 
+    ctrl = samp_dist('rpoA', 'rpoA')
+
     #dist_f = partial(samp_dist, gene1='osc')
     #dists = po.map(dist_f, ['shc'])
 
     for i, g1 in enumerate(gene_list):
+        print(i / len(gene_list), g1)
         dist_f = partial(samp_dist, gene1=g1)
         dists = po.map(dist_f, gene_list)
-        ctrls = po.map(dist_f, [None] * len(gene_list))
+        #ctrls = po.map(dist_f, [None] * len(gene_list))
         for j, g2 in enumerate(gene_list):
             ax = plt.subplot(gs[i + j * len(gene_list)])
-            mwu = mannwhitneyu(ctrls[j], dists[j])[1]
+            mwu = mannwhitneyu(ctrl, dists[j])[1]
             txt = g1 + '->' + g2 + '\np={:.2e}'.format(mwu)
             ax.text(0.5, 0.95, txt, fontsize=2, \
               va='top', ha='center', transform=ax.transAxes)
             ax.get_xaxis().set_visible(False)
             ax.get_yaxis().set_visible(False)
+            ax.plot(xs, gaussian_kde(ctrl)(xs), 'r-')
             if sum(dists[j]) != 0:
-                #print(g1, g2, dists[j])
                 ax.plot(xs, gaussian_kde(dists[j])(xs), 'k-')
-            if sum(ctrls[j]) != 0:
-                ax.plot(xs, gaussian_kde(ctrls[j])(xs), 'r-')
-            #TODO: scipy.stats.mannwhitneyu(dist, ctrl)
+            #if sum(ctrls[j]) != 0:
+                #ax.plot(xs, gaussian_kde(ctrls[j])(xs), 'r-')
     plt.gcf().set_size_inches(24, 24)
     plt.savefig(FIG_FILE, dpi=300, bbox_inches='tight')
     #plt.show()
