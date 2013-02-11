@@ -131,9 +131,9 @@ if build_tetra:
 
 # start computing gene distances
 if build_dist:
-    M_DRAWS = 1000  # number of Monte Carlo draws to do
+    M_DRAWS = 100  # number of Monte Carlo draws to do
     G_SAMP = 1000  # number of each of both genes to sample in each draw
-    FIG_FILE = '../MHL7_tetra_rpoa.png'
+    FIG_FILE = '../MHL7_tetra_rpoa_sel_lab.png'
 
     # convenience functions to return a gene name or
     # its tetranucleotide array
@@ -223,6 +223,7 @@ if build_dist:
     xs = np.linspace(0, 0.005, 200)
 
     ctrl = samp_dist('rpoA', 'rpoA')
+    ctrl_mean = np.mean(ctrl)
 
     #dist_f = partial(samp_dist, gene1='osc')
     #dists = po.map(dist_f, ['shc'])
@@ -235,7 +236,10 @@ if build_dist:
         for j, g2 in enumerate(gene_list):
             ax = plt.subplot(gs[i + j * len(gene_list)])
             mwu = mannwhitneyu(ctrl, dists[j])[1]
-            txt = g1 + '->' + g2 + '\np={:.2e}'.format(mwu)
+            if np.mean(dists[j]) < ctrl_mean:
+                txt = g1 + '->' + g2 + '\np={:.2e}'.format(mwu)
+            else:
+                txt = g1 + '->' + g2
             ax.text(0.5, 0.95, txt, fontsize=2, \
               va='top', ha='center', transform=ax.transAxes)
             ax.get_xaxis().set_visible(False)
