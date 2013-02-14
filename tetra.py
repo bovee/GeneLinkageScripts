@@ -131,20 +131,21 @@ if build_tetra:
 
 # start computing gene distances
 if build_dist:
-    M_DRAWS = 100  # number of Monte Carlo draws to do
-    G_SAMP = 1000  # number of each of both genes to sample in each draw
-    FIG_FILE = '../MHL7_tetra_rpoa_sel_lab.png'
+    M_DRAWS = 10  # number of Monte Carlo draws to do for controls
+    FIG_FILE = '../MHL7_tetra_all.png'
 
     # convenience functions to return a gene name or
     # its tetranucleotide array
     up_name = lambda l: l.split(',')[0].strip()
     up_tet = lambda l: np.array([float(i) for i in l.split(',')[1:]])
 
+    print('Buffering')
     # first, get a count of how many of each gene there are
     with open(TETRA_FILE, 'r') as f:
         # how many dimensions are in each tetra score?
         tetlen = len(f.readline().split(',')) - 1
         gene_names, gene_ids = {}, []
+        # get a count of how many of each gene there are
         gene_ct = Counter()
         for l in f:
             gene_name = up_name(l)
@@ -158,7 +159,6 @@ if build_dist:
         gene_tetra = np.empty((len(gene_ids), tetlen))
         for i, l in enumerate(f):
             gene_tetra[i] = up_tet(l)
-    # get a count of how many of each gene there are
     print('Done buffering')
 
     def rnd_genes(genes=[], n=1):
@@ -192,18 +192,17 @@ if build_dist:
         return dists
 
     def samp_dist(gene2, gene1):
-        tet1 = rnd_genes([gene1], G_SAMP)
+        tet1 = gene_tetra[gene_ids == gene_names[gene1]]
         if gene2 is None:
-            g2 = []
+            dist = []
+            for _ in range(M_DRAWS):
+                tet2 = rnd_genes([], gene_ct[gene1])
+                dist += list(min_dst(tet1, tet2, allow_zero=(gene1 != gene2)))
         else:
-            g2 = [gene2]
-        tet2 = rnd_genes(g2, G_SAMP)
-        dist = []
-        for _ in range(M_DRAWS):
-            dist += list(min_dst(tet1, tet2, allow_zero=(gene1 != gene2)))
+            tet2 = gene_tetra[gene_ids == gene_names[gene2]]
+            dist = list(min_dst(tet1, tet2, allow_zero=(gene1 != gene2)))
         return dist
 
-    #TODO: no cerI in this list?
     gene_list = ['psaA', 'psaB', 'psbA', 'psbB', 'pufM', 'pufL', 'pr', 'pioA',
                  'pioC', 'iro', 'coxB', 'ompC', 'arch_amoA', 'bact_amoA',
                  'mmoZ', 'hszA', 'sqR-allo', 'sqR-rhodo', 'narG', 'nirK',
@@ -212,9 +211,9 @@ if build_dist:
                  'cdsA-synn', 'mglcD', 'mgdA', 'btaA', 'olsB', 'shc', 'osc',
                  'cas1', 'crtI-allo', 'crtI-rhodo', 'crtP', 'nifH', 'luxI',
                  'raiI', 'por', 'bchF', 'rpoB']
-    gene_list = [g for g in gene_list if gene_ct[g] >= 30]
+    gene_list = [g for g in gene_list if gene_ct[g] >= 30 and g in gene_ct]
     #gene_list = ['osc', 'shc', 'dsrA', 'dsrB']
-    #gene_list = all_genes
+    #gene_list = [g for g in gene_list if g in gene_ct]
 
     po = Pool()
 
@@ -222,40 +221,31 @@ if build_dist:
     gs.update(wspace=0, hspace=0)
     xs = np.linspace(0, 0.005, 200)
 
-    ctrl = samp_dist('rpoA', 'rpoA')
-    ctrl_mean = np.mean(ctrl)
-
-    #dist_f = partial(samp_dist, gene1='osc')
-    #dists = po.map(dist_f, ['shc'])
+    ctrl_rpo = samp_dist('rpoA', 'rpoA')
 
     for i, g1 in enumerate(gene_list):
-        print(i / len(gene_list), g1)
+        print(int(100 * i / len(gene_list)), g1)
         dist_f = partial(samp_dist, gene1=g1)
         dists = po.map(dist_f, gene_list)
-        #ctrls = po.map(dist_f, [None] * len(gene_list))
+        ctrls = po.map(dist_f, [None] * len(gene_list))
+        #dists = list(map(dist_f, gene_list))
+        #ctrls = list(map(dist_f, [None] * len(gene_list)))
         for j, g2 in enumerate(gene_list):
             ax = plt.subplot(gs[i + j * len(gene_list)])
-            mwu = mannwhitneyu(ctrl, dists[j])[1]
-            if np.mean(dists[j]) < ctrl_mean:
-                txt = g1 + '->' + g2 + '\np={:.2e}'.format(mwu)
+            if np.mean(dists[j]) < np.mean(ctrls[j]):
+                mwu = mannwhitneyu(ctrls[j], dists[j])[1]
+                mwu2 = mannwhitneyu(ctrl_rpo, dists[j])[1]
+                txt = g1 + '->' + g2 + '\np={:.2e} ({:.2e})'.format(mwu, mwu2)
             else:
                 txt = g1 + '->' + g2
             ax.text(0.5, 0.95, txt, fontsize=2, \
               va='top', ha='center', transform=ax.transAxes)
             ax.get_xaxis().set_visible(False)
             ax.get_yaxis().set_visible(False)
-            ax.plot(xs, gaussian_kde(ctrl)(xs), 'r-')
+            ax.plot(xs, gaussian_kde(ctrl_rpo)(xs), 'b-')
+            if sum(dists[j]) != 0:
+                ax.plot(xs, gaussian_kde(ctrls[j])(xs), 'r-')
             if sum(dists[j]) != 0:
                 ax.plot(xs, gaussian_kde(dists[j])(xs), 'k-')
-            #if sum(ctrls[j]) != 0:
-                #ax.plot(xs, gaussian_kde(ctrls[j])(xs), 'r-')
     plt.gcf().set_size_inches(24, 24)
     plt.savefig(FIG_FILE, dpi=300, bbox_inches='tight')
-    #plt.show()
-
-# library(ggplot2)
-# d <- read.csv('gene_dist.txt')
-# genes <- c('dsrA','dsrB','dsrC','dsrL','dsrN')
-# ggplot(subset(d, FromGene %in% c(genes) & ToGene %in% c(genes)),
-#   aes(x=Dist)) + facet_grid(FromGene ~ ToGene, labeller=label_both)
-#   + geom_density() + xlim(0,1)
