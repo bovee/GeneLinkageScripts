@@ -1,5 +1,6 @@
 import shutil
 import subprocess
+import os
 import os.path as op
 from glob import iglob
 
@@ -41,7 +42,9 @@ def find_classify_orfs(project, scaffolds, markov_model, \
         hmmscan = 'hmmscan'
     else:
         hmmscan = op.join(hmmer_loc, 'hmmscan')
-    subprocess.call([hmmscan, '--tblout', gene_file, markov_model, gfa_file])
+    DEVNULL = open(os.devnull, 'wb')
+    subprocess.call([hmmscan, '--tblout', gene_file, markov_model, gfa_file], \
+                    stdout=DEVNULL)
 
 
 def build_hmmdb():
