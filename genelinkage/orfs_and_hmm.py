@@ -29,7 +29,13 @@ def find_classify_orfs(project, scaffolds, markov_model, \
 
     subprocess.call([gmhmmp, '-a', '-f', 'G', '-m', meta_mod, '-o',
                      gff_file, scaffolds])
-    subprocess.call([aa_from_gff, '<', gff_file, '>', gfa_file])
+
+    gff2aa = subprocess.Popen([aa_from_gff], stdin=subprocess.PIPE, \
+                              stdout=subprocess.PIPE)
+    with open(gfa_file, 'w') as fout:
+        fout.write(gff2aa.communicate(open(gff_file, 'r'))[0])
+    gff2aa.terminate()
+    #subprocess.call([aa_from_gff, '<', gff_file, '>', gfa_file])
 
     if hmmer_loc is None:
         hmmscan = 'hmmscan'
