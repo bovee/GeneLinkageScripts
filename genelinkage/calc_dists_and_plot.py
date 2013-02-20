@@ -133,6 +133,10 @@ def plot_dist(project, gene_list=None, filt_length=None, monte_draws=10, \
         gs = gridspec.GridSpec(len(gene_list), len(gene_list))
         gs.update(wspace=0, hspace=0)
         xs = np.linspace(0, 0.005, 200)
+        if hasattr(gaussian_kde, 'set_bandwidth'):
+            kdeargs = [0.1]
+        else:
+            kdeargs = []
 
     ctrl_rpo = samp_dist('rpoA', 'rpoA', gene_data, \
                          monte_draws=monte_draws)
@@ -174,11 +178,14 @@ def plot_dist(project, gene_list=None, filt_length=None, monte_draws=10, \
                 va='top', ha='center', transform=ax.transAxes)
                 ax.get_xaxis().set_visible(False)
                 ax.get_yaxis().set_visible(False)
-                ax.plot(xs, gaussian_kde(ctrl_rpo, 0.1)(xs), 'b-')
+                ys = gaussian_kde(ctrl_rpo, *kdeargs)(xs)
+                ax.plot(xs, ys, 'b-')
                 if sum(dists[j]) != 0:
-                    ax.plot(xs, gaussian_kde(ctrls[j], 0.1)(xs), 'r-')
+                    ys = gaussian_kde(ctrls[j], *kdeargs)(xs)
+                    ax.plot(xs, ys, 'r-')
                 if sum(dists[j]) != 0:
-                    ax.plot(xs, gaussian_kde(dists[j], 0.1)(xs), 'k-')
+                    ys = gaussian_kde(dists[j], *kdeargs)(xs)
+                    ax.plot(xs, ys, 'k-')
     if save:
         dist_file.close()
     if plot:
