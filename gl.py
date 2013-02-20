@@ -46,7 +46,8 @@ if __name__ == '__main__':
 
     project = op.join(args.working_dir, args.project)
     if args.build_orfs or args.build_all:
-        find_classify_orfs(project, args.scaffolds, args.markov_model)
+        find_classify_orfs(project, args.scaffolds, args.markov_model, \
+                           args.metagenemark, args.hmmer)
 
     if args.build_tetra or args.build_all:
         generate_tetra(project, args.scaffolds)
