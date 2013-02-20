@@ -15,7 +15,7 @@ import matplotlib.gridspec as gridspec
 try:
     from rpy2.robjects import r, FloatVector
     ranksum = lambda a, b: r['wilcox.test'](FloatVector(a), FloatVector(b), \
-              alternative='less').rx('p.value')[0][0]
+              alternative='greater').rx('p.value')[0][0]
 except:
     ranksum = None
 
@@ -128,7 +128,7 @@ def plot_dist(project, gene_list=None, filt_length=None, monte_draws=10, \
     if save:
         fname = op.splitext(op.realpath(tetra_file))[0] + '_dists.txt'
         dist_file = open(fname, 'w')
-        mk_str = lambda d: ','.join([str(i) for i in d])
+        #mk_str = lambda d: ','.join([str(i) for i in d])
     if plot:
         gs = gridspec.GridSpec(len(gene_list), len(gene_list))
         gs.update(wspace=0, hspace=0)
@@ -137,8 +137,8 @@ def plot_dist(project, gene_list=None, filt_length=None, monte_draws=10, \
     ctrl_rpo = samp_dist('rpoA', 'rpoA', gene_data, \
                          monte_draws=monte_draws)
 
-    if save:
-        dist_file.write('rpo_ctrl,' + mk_str(ctrl_rpo))
+    #if save:
+    #    dist_file.write('rpo_ctrl,' + mk_str(ctrl_rpo))
 
     for i, g1 in enumerate(gene_list):
         print(int(100 * i / len(gene_list)), g1)
@@ -149,22 +149,28 @@ def plot_dist(project, gene_list=None, filt_length=None, monte_draws=10, \
         #dists = list(map(dist_f, gene_list))
         #ctrls = list(map(dist_f, [None] * len(gene_list)))
         for j, g2 in enumerate(gene_list):
-            if save:
-                dist_file.write(g1 + '->' + g2 + ',' + mk_str(dists[j]))
-                dist_file.write(g1 + '->' + g2 + '_ctrl,' + mk_str(ctrls[j]))
+            if ranksum is not None:
+                #mwu = mannwhitneyu(ctrls[j], dists[j])[1]
+                #mwu2 = mannwhitneyu(ctrl_rpo, dists[j])[1]
+                mwu = ranksum(dists[j], ctrls[j])
+                mwu2 = ranksum(dists[j], ctrl_rpo)
+            else:
+                mwu, mwu2 = None, None
+
+            if save and mwu is not None:
+                dist_file.write(g1 + ',' + g2 + ',' + \
+                                str(mwu) + ',' + str(mwu2))
+                #dist_file.write(g1 + '->' + g2 + ',' + mk_str(dists[j]))
+                #dist_file.write(g1 + '->' + g2 + '_ctrl,' + mk_str(ctrls[j]))
 
             if plot:
                 ax = plt.subplot(gs[i + j * len(gene_list)])
-                if ranksum is not None:
-                    #mwu = mannwhitneyu(ctrls[j], dists[j])[1]
-                    #mwu2 = mannwhitneyu(ctrl_rpo, dists[j])[1]
-                    mwu = ranksum(dists[j], ctrls[j])
-                    mwu2 = ranksum(dists[j], ctrl_rpo)
+                if mwu is not None:
                     txt = g1 + '->' + g2 + \
                             '\np={:.2e} ({:.2e})'.format(mwu, mwu2)
                 else:
                     txt = g1 + '->' + g2
-                ax.text(0.5, 0.95, txt, fontsize=12, \
+                ax.text(0.5, 0.95, txt, fontsize=2, \
                 va='top', ha='center', transform=ax.transAxes)
                 ax.get_xaxis().set_visible(False)
                 ax.get_yaxis().set_visible(False)

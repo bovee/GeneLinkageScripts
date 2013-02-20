@@ -55,15 +55,15 @@ if __name__ == '__main__':
     if args.build_plot or args.build_dist or args.build_all:
         M_DRAWS = 10  # number of Monte Carlo draws to do for controls
 
-        #gene_list = ['psaA', 'psaB', 'psbA', 'psbB', 'pufM', 'pufL', 'pr', 'pioA',
-        #             'pioC', 'iro', 'coxB', 'ompC', 'arch_amoA', 'bact_amoA',
-        #             'mmoZ', 'hszA', 'sqR-allo', 'sqR-rhodo', 'narG', 'nirK',
-        #             'dsrA', 'dsrB', 'mcrA', 'frhB', 'cdhD', 'fdhA', 'mvK', 'dxr',
-        #             'gggps', 'sqdB', 'cdsA-allo', 'cdsA-geo', 'cdsA-rhodo',
-        #             'cdsA-synn', 'mglcD', 'mgdA', 'btaA', 'olsB', 'shc', 'osc',
-        #             'cas1', 'crtI-allo', 'crtI-rhodo', 'crtP', 'nifH', 'luxI',
-        #             'raiI', 'por', 'bchF', 'rpoB']
-        gene_list = ['osc', 'shc', 'dsrA', 'dsrB']
+        gene_list = ['psaA', 'psaB', 'psbA', 'psbB', 'pufM', 'pufL', 'pr', 'pioA',
+                     'pioC', 'iro', 'coxB', 'ompC', 'arch_amoA', 'bact_amoA',
+                     'mmoZ', 'hszA', 'sqR-allo', 'sqR-rhodo', 'narG', 'nirK',
+                     'dsrA', 'dsrB', 'mcrA', 'frhB', 'cdhD', 'fdhA', 'mvK', 'dxr',
+                     'gggps', 'sqdB', 'cdsA-allo', 'cdsA-geo', 'cdsA-rhodo',
+                     'cdsA-synn', 'mglcD', 'mgdA', 'btaA', 'olsB', 'shc', 'osc',
+                     'cas1', 'crtI-allo', 'crtI-rhodo', 'crtP', 'nifH', 'luxI',
+                     'raiI', 'por', 'bchF', 'rpoB']
+        #gene_list = ['osc', 'shc', 'dsrA', 'dsrB']
         plot = args.build_plot or args.build_all
         save = args.build_dist or args.build_all
         plot_dist(project, gene_list, 30, M_DRAWS, plot, save)
