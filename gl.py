@@ -51,7 +51,7 @@ if __name__ == '__main__':
         generate_tetra(project, args.scaffolds)
 
     if args.build_plot or args.build_dist or args.build_all:
-        M_DRAWS = 10  # number of Monte Carlo draws to do for controls
+        M_DRAWS = 25  # number of Monte Carlo draws to do for controls
 
         gene_list = ['psaA', 'psaB', 'psbA', 'psbB', 'pufM', 'pufL', 'pr', 'pioA',
                      'pioC', 'iro', 'coxB', 'ompC', 'arch_amoA', 'bact_amoA',
@@ -61,7 +61,8 @@ if __name__ == '__main__':
                      'cdsA-synn', 'mglcD', 'mgdA', 'btaA', 'olsB', 'shc', 'osc',
                      'cas1', 'crtI-allo', 'crtI-rhodo', 'crtP', 'nifH', 'luxI',
                      'raiI', 'por', 'bchF', 'rpoB']
-        #gene_list = ['osc', 'shc', 'dsrA', 'dsrB']
+        #gene_list = ['dsrA', 'dsrB', 'cdsA-synn', 'frhB', 'fdhA']
+        #gene_list = None
         plot = args.build_plot or args.build_all
         save = args.build_dist or args.build_all
-        plot_dist(project, gene_list, 30, M_DRAWS, plot, save)
+        plot_dist(project, gene_list, 25, M_DRAWS, plot, save)

@@ -16,9 +16,10 @@ import matplotlib.gridspec as gridspec
 try:
     from rpy2.robjects import r, FloatVector
     ranksum = lambda a, b: r['wilcox.test'](FloatVector(a), FloatVector(b), \
-              alternative='greater').rx('p.value')[0][0]
+                           alternative='less').rx('p.value')[0][0]
 except:
     ranksum = None
+    print('RPy not loaded. No stat calc done.')
 
 
 def min_dst(tet1, tet2, allow_zero=True):
@@ -65,18 +66,27 @@ def rnd_genes(genes=[], n=1, gene_data=None):
     return tetra
 
 
-def samp_dist(gene2, gene1, gene_data=None, monte_draws=None):
+def samp_dist(gene2, gene1, gene_data=None, ctrl=False, monte_draws=None):
     """
     Given two gene names, find the minimum distances from 1 to 2.
     """
     gene_tetra, gene_ct, gene_ids, gene_names = gene_data
-    tet1 = gene_tetra[gene_ids == gene_names[gene1]]
-    if gene2 is None:
+    if ctrl:
+        gene_locs = np.logical_or(gene_ids == gene_names[gene1], \
+                                  gene_ids == gene_names[gene2])
         dist = []
         for _ in range(monte_draws):
-            tet2 = rnd_genes([], gene_ct[gene1], gene_data)
-            dist += list(min_dst(tet1, tet2, allow_zero=(gene1 != gene2)))
+            rand_picks = np.random.permutation(sum(gene_locs))
+            tet1 = gene_tetra[gene_locs][rand_picks[:gene_ct[gene1]]]
+            tet2 = gene_tetra[gene_locs][rand_picks[-gene_ct[gene2] - 1:]]
+            dist += list(min_dst(tet1, tet2, allow_zero=False))
+        #tet1 = gene_tetra[gene_ids == gene_names[gene1]]
+        #dist = []
+        #for _ in range(monte_draws):
+        #    tet2 = rnd_genes([], gene_ct[gene1], gene_data)
+        #    dist += list(min_dst(tet1, tet2, allow_zero=(gene1 != gene2)))
     else:
+        tet1 = gene_tetra[gene_ids == gene_names[gene1]]
         tet2 = gene_tetra[gene_ids == gene_names[gene2]]
         dist = list(min_dst(tet1, tet2, allow_zero=(gene1 != gene2)))
     return dist
@@ -134,44 +144,48 @@ def plot_dist(project, gene_list=None, filt_length=None, monte_draws=10, \
     if save:
         fname = op.splitext(op.realpath(tetra_file))[0] + '_dists.txt'
         dist_file = open(fname, 'w')
-        #mk_str = lambda d: ','.join([str(i) for i in d])
     if plot:
         gs = gridspec.GridSpec(len(gene_list), len(gene_list))
         gs.update(wspace=0, hspace=0)
-        xs = np.linspace(0, 0.005, 200)
+        xs = np.linspace(0, 0.1, 200)
         if hasattr(gaussian_kde, 'set_bandwidth'):
             kdeargs = [0.1]
         else:
             kdeargs = []
 
-    ctrl_rpo = samp_dist('rpoA', 'rpoA', gene_data, \
-                         monte_draws=monte_draws)
-
-    #if save:
-    #    dist_file.write('rpo_ctrl,' + mk_str(ctrl_rpo))
+    if 'rpoA' in gene_ct:
+        if 'rpoA' in gene_list:
+            del gene_list[gene_list.index('rpoA')]
+        ctrl_rpo = samp_dist('rpoA', 'rpoA', gene_data, \
+                            monte_draws=monte_draws)
+    else:
+        ctrl_rpo = None
 
     for i, g1 in enumerate(gene_list):
         print(int(100 * i / len(gene_list)), g1)
         dist_f = partial(samp_dist, gene1=g1, gene_data=gene_data, \
                          monte_draws=monte_draws)
+        ctrl_f = partial(samp_dist, gene1=g1, gene_data=gene_data, \
+                         ctrl=True, monte_draws=monte_draws)
         dists = po.map(dist_f, gene_list)
-        ctrls = po.map(dist_f, [None] * len(gene_list))
+        ctrls = po.map(ctrl_f, gene_list)
         #dists = list(map(dist_f, gene_list))
-        #ctrls = list(map(dist_f, [None] * len(gene_list)))
+        #ctrls = list(map(ctrl_f, gene_list))
         for j, g2 in enumerate(gene_list):
             if ranksum is not None:
                 #mwu = mannwhitneyu(ctrls[j], dists[j])[1]
                 #mwu2 = mannwhitneyu(ctrl_rpo, dists[j])[1]
                 mwu = ranksum(dists[j], ctrls[j])
-                mwu2 = ranksum(dists[j], ctrl_rpo)
+                if ctrl_rpo is not None:
+                    mwu2 = ranksum(dists[j], ctrl_rpo)
+                else:
+                    mwu2 = 0
             else:
                 mwu, mwu2 = None, None
 
             if save and mwu is not None:
                 dist_file.write(g1 + ',' + g2 + ',' + \
-                                str(mwu) + ',' + str(mwu2))
-                #dist_file.write(g1 + '->' + g2 + ',' + mk_str(dists[j]))
-                #dist_file.write(g1 + '->' + g2 + '_ctrl,' + mk_str(ctrls[j]))
+                                str(mwu) + ',' + str(mwu2) + '\n')
 
             if plot:
                 ax = plt.subplot(gs[i + j * len(gene_list)])
@@ -180,13 +194,14 @@ def plot_dist(project, gene_list=None, filt_length=None, monte_draws=10, \
                             '\np={:.2e} ({:.2e})'.format(mwu, mwu2)
                 else:
                     txt = g1 + '->' + g2
-                ax.text(0.5, 0.95, txt, fontsize=2, \
-                va='top', ha='center', transform=ax.transAxes)
+                ax.text(0.5, 0.95, txt, fontsize=12, \
+                        va='top', ha='center', transform=ax.transAxes)
                 ax.get_xaxis().set_visible(False)
                 ax.get_yaxis().set_visible(False)
-                ys = gaussian_kde(ctrl_rpo, *kdeargs)(xs)
-                ax.plot(xs, ys, 'b-')
-                if sum(dists[j]) != 0:
+                if ctrl_rpo is not None:
+                    ys = gaussian_kde(ctrl_rpo, *kdeargs)(xs)
+                    ax.plot(xs, ys, 'b-')
+                if sum(ctrls[j]) != 0:
                     ys = gaussian_kde(ctrls[j], *kdeargs)(xs)
                     ax.plot(xs, ys, 'r-')
                 if sum(dists[j]) != 0:
