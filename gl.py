@@ -7,7 +7,6 @@ from genelinkage.calc_tetra import generate_tetra
 from genelinkage.calc_dists_and_plot import plot_dist
 
 if __name__ == '__main__':
-
     desc = 'Find linkages between genes.'
     parser = argparse.ArgumentParser(description=desc)
     parser.add_argument('--working-dir', '-d', type=str, \
@@ -41,7 +40,6 @@ if __name__ == '__main__':
     parser.add_argument('--dist', action='store_true', \
                         dest='build_dist', default=False, \
                         help='Save the gene-gene distances.')
-
     args = parser.parse_args()
 
     project = op.join(args.working_dir, args.project)

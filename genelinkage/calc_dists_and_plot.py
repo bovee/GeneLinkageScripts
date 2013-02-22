@@ -8,6 +8,7 @@ from functools import partial
 from multiprocessing import Pool
 
 import numpy as np
+import scipy.spatial.distance as ssd
 from scipy.stats import gaussian_kde  # , mannwhitneyu
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
@@ -25,14 +26,19 @@ def min_dst(tet1, tet2, allow_zero=True):
     Given two sets of arrays, find the minimum distance from
     each member of tet1 to its nearest neighbor in tet2
     """
-    dists = np.empty(tet1.shape[0])
-    for i, t1 in enumerate(tet1):
-        min_dist = np.sum((tet2 - t1) ** 2, axis=1)
-        if not allow_zero:
-            dists[i] = np.min(min_dist[min_dist != 0])
-        else:
-            dists[i] = np.min(min_dist)
-    return dists
+    dists = ssd.cdist(tet1, tet2)
+    if not allow_zero:
+        dists[dists == 0] = np.inf
+    return dists.min(axis=1)
+
+    #dists = np.empty(tet1.shape[0])
+    #for i, t1 in enumerate(tet1):
+    #    min_dist = np.sum((tet2 - t1) ** 2, axis=1)
+    #    if not allow_zero:
+    #        dists[i] = np.min(min_dist[min_dist != 0])
+    #    else:
+    #        dists[i] = np.min(min_dist)
+    #return np.sqrt(dists)
 
 
 def rnd_genes(genes=[], n=1, gene_data=None):
