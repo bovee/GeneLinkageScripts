@@ -65,4 +65,4 @@ if __name__ == '__main__':
         #gene_list = None
         plot = args.build_plot or args.build_all
         save = args.build_dist or args.build_all
-        plot_dist(project, gene_list, 25, M_DRAWS, plot, save)
+        plot_dist(project, gene_list, 5, M_DRAWS, plot, save)

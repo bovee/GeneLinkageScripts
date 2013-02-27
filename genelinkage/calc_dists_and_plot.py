@@ -138,7 +138,6 @@ def plot_dist(project, gene_list=None, filt_length=None, monte_draws=10, \
     else:
         gene_list = [g for g in gene_list if gene_ct[g] >= filt_length \
                      and g in gene_ct]
-
     po = Pool()
 
     if save:
@@ -153,11 +152,11 @@ def plot_dist(project, gene_list=None, filt_length=None, monte_draws=10, \
         else:
             kdeargs = []
 
-    if 'rpoA' in gene_ct:
+    if gene_ct.get('rpoA', 0) > 1:
         if 'rpoA' in gene_list:
             del gene_list[gene_list.index('rpoA')]
         ctrl_rpo = samp_dist('rpoA', 'rpoA', gene_data, \
-                            monte_draws=monte_draws)
+                                monte_draws=monte_draws)
     else:
         ctrl_rpo = None
 
