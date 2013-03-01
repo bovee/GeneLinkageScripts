@@ -43,8 +43,8 @@ def find_classify_orfs(project, scaffolds, markov_model, \
     else:
         hmmscan = op.join(hmmer_loc, 'hmmscan')
     DEVNULL = open(os.devnull, 'wb')
-    subprocess.call([hmmscan, '--tblout', gene_file, markov_model, gfa_file], \
-                    stdout=DEVNULL)
+    subprocess.call([hmmscan, '--tblout', gene_file, '-E', '10e-10', \
+                     markov_model, gfa_file], stdout=DEVNULL)
 
 
 def build_hmmdb():

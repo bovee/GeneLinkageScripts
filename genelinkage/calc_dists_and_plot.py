@@ -152,7 +152,7 @@ def plot_dist(project, gene_list=None, filt_length=None, monte_draws=10, \
         else:
             kdeargs = []
 
-    if gene_ct.get('rpoA', 0) > 1:
+    if gene_ct.get('rpoA', 0) > 5:
         if 'rpoA' in gene_list:
             del gene_list[gene_list.index('rpoA')]
         ctrl_rpo = samp_dist('rpoA', 'rpoA', gene_data, \
