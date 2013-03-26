@@ -1,5 +1,4 @@
 import itertools
-import os.path as op
 
 
 def rc(seq):  # reverse complement
@@ -22,7 +21,7 @@ def slid_win(seq, size=4):
     yield buf
 
 
-def generate_tetra(project, scaffolds):
+def generate_tetra(project, scaffolds, min_len=2000):
     """
     gene_file: HMMER predicted genes.
 
@@ -76,6 +75,8 @@ def generate_tetra(project, scaffolds):
             p_gff_name = gff_name
             frq = dict([(s, 0) for s in seq_map.values()])
             cc = contigs[gene2contig[gff_name]]
+            if len(cc) < min_len:
+                continue
             for ss in slid_win(str(cc.sequence).upper(), 4):
                 frq[seq_map.get(ss, 'NNNN')] += 1
 

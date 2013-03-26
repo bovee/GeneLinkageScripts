@@ -40,29 +40,39 @@ if __name__ == '__main__':
     parser.add_argument('--dist', action='store_true', \
                         dest='build_dist', default=False, \
                         help='Save the gene-gene distances.')
+
+    parser.add_argument('--hmm-e-val', type=str, default='10e-10',
+      help='E-value to use in filtering HMMER matches')
+    parser.add_argument('--min-genes', type=int, default=5,
+      help='Minimum # of genes for a gene-gene distance comparison')
+    parser.add_argument('--min-ctg-len', type=int, default=2000,
+      help='Contigs need to be > than this to have tetra scores calculated')
     args = parser.parse_args()
+    print(args.min_ctg_len, args.min_genes, args.hmm_e_val)
 
     project = op.join(args.working_dir, args.project)
     if args.build_orfs or args.build_all:
         find_classify_orfs(project, args.scaffolds, args.markov_model, \
-                           args.metagenemark, args.hmmer)
+                           args.metagenemark, args.hmmer, args.hmm_e_val)
 
     if args.build_tetra or args.build_all:
-        generate_tetra(project, args.scaffolds)
+        generate_tetra(project, args.scaffolds, min_len=args.min_ctg_len)
 
     if args.build_plot or args.build_dist or args.build_all:
-        M_DRAWS = 25  # number of Monte Carlo draws to do for controls
+        M_DRAWS = 100  # number of Monte Carlo draws to do for controls
+        FILT_LEN = args.min_genes
 
-        gene_list = ['psaA', 'psaB', 'psbA', 'psbB', 'pufM', 'pufL', 'pr', 'pioA',
-                     'pioC', 'iro', 'coxB', 'ompC', 'arch_amoA', 'bact_amoA',
-                     'mmoZ', 'hszA', 'sqR-allo', 'sqR-rhodo', 'narG', 'nirK',
-                     'dsrA', 'dsrB', 'mcrA', 'frhB', 'cdhD', 'fdhA', 'mvK', 'dxr',
-                     'gggps', 'sqdB', 'cdsA-allo', 'cdsA-geo', 'cdsA-rhodo',
-                     'cdsA-synn', 'mglcD', 'mgdA', 'btaA', 'olsB', 'shc', 'osc',
-                     'cas1', 'crtI-allo', 'crtI-rhodo', 'crtP', 'nifH', 'luxI',
-                     'raiI', 'por', 'bchF', 'rpoB']
+        gene_list = ['psaA', 'psaB', 'psbA', 'psbB', 'pufM', 'pufL', 'pr',
+                     'pioA', 'pioC', 'iro', 'coxB', 'ompC', 'arch_amoA',
+                     'bact_amoA', 'mmoZ', 'hszA', 'sqR-allo', 'sqR-rhodo',
+                     'narG', 'nirK', 'dsrA', 'dsrB', 'mcrA', 'frhB', 'cdhD',
+                     'fdhA', 'mvK', 'dxr', 'gggps', 'sqdB', 'cdsA-allo',
+                     'cdsA-geo', 'cdsA-rhodo', 'cdsA-synn', 'mglcD', 'mgdA',
+                     'btaA', 'olsB', 'shc', 'osc', 'cas1', 'crtI-allo',
+                     'crtI-rhodo', 'crtP', 'nifH', 'luxI', 'raiI', 'por',
+                     'bchF', 'rpoB']
         #gene_list = ['dsrA', 'dsrB', 'cdsA-synn', 'frhB', 'fdhA']
         #gene_list = None
         plot = args.build_plot or args.build_all
         save = args.build_dist or args.build_all
-        plot_dist(project, gene_list, 5, M_DRAWS, plot, save)
+        plot_dist(project, gene_list, FILT_LEN, M_DRAWS, plot, save)

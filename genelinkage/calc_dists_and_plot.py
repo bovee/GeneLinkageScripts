@@ -92,8 +92,8 @@ def samp_dist(gene2, gene1, gene_data=None, ctrl=False, monte_draws=None):
     return dist
 
 
-def plot_dist(project, gene_list=None, filt_length=None, monte_draws=10, \
-              plot=True, save=False):
+def plot_dist(project, gene_list=None, filt_length=None, monte_draws=100, \
+              plot=True, save=False, bio_ctrl='rpoA'):
     """
     gene_list: list of genes to compare. If None, compare all genes
         listed in the tetra file
@@ -132,13 +132,22 @@ def plot_dist(project, gene_list=None, filt_length=None, monte_draws=10, \
     print('Done buffering')
 
     if gene_list is None:
-        gene_list = list(gene_ct.keys())
+        gene_list = sorted(list(gene_ct.keys()))
+
     if filt_length is None:
         gene_list = [g for g in gene_list if g in gene_ct]
     else:
         gene_list = [g for g in gene_list if gene_ct[g] >= filt_length \
                      and g in gene_ct]
     po = Pool()
+
+    if gene_ct.get(bio_ctrl, 0) > 5:
+        if bio_ctrl in gene_list:
+            del gene_list[gene_list.index(bio_ctrl)]
+        ctrl_rpo = samp_dist(bio_ctrl, bio_ctrl, gene_data, \
+                                monte_draws=monte_draws)
+    else:
+        ctrl_rpo = None
 
     if save:
         fname = op.splitext(op.realpath(tetra_file))[0] + '_dists.txt'
@@ -151,14 +160,6 @@ def plot_dist(project, gene_list=None, filt_length=None, monte_draws=10, \
             kdeargs = [0.1]
         else:
             kdeargs = []
-
-    if gene_ct.get('rpoA', 0) > 5:
-        if 'rpoA' in gene_list:
-            del gene_list[gene_list.index('rpoA')]
-        ctrl_rpo = samp_dist('rpoA', 'rpoA', gene_data, \
-                                monte_draws=monte_draws)
-    else:
-        ctrl_rpo = None
 
     for i, g1 in enumerate(gene_list):
         print(int(100 * i / len(gene_list)), g1)
@@ -188,21 +189,25 @@ def plot_dist(project, gene_list=None, filt_length=None, monte_draws=10, \
 
             if plot:
                 ax = plt.subplot(gs[i + j * len(gene_list)])
-                if mwu is not None:
-                    txt = g1 + '->' + g2 + \
-                            '\np={:.2e} ({:.2e})'.format(mwu, mwu2)
+                if mwu is not None and g1 != g2:
+                    txt = g1 + '$\\rightarrow$' + g2 + \
+                        '\np$_{s}$=' + '{:.2%}'.format(mwu) + \
+                        ' (p$_{b}$=' + '{:.2%})'.format(mwu2)
+                elif mwu2 is not None:
+                    txt = g1 + '$\\rightarrow$' + g2 + \
+                        '\np$_{b}$=' + '{:.2%}'.format(mwu2)
                 else:
-                    txt = g1 + '->' + g2
+                    txt = g1 + '$\\rightarrow$' + g2
                 ax.text(0.5, 0.95, txt, fontsize=12, \
                         va='top', ha='center', transform=ax.transAxes)
                 ax.get_xaxis().set_visible(False)
                 ax.get_yaxis().set_visible(False)
                 if ctrl_rpo is not None:
                     ys = gaussian_kde(ctrl_rpo, *kdeargs)(xs)
-                    ax.plot(xs, ys, 'b-')
+                    ax.plot(xs, ys, '--', c='0.3')
                 if sum(ctrls[j]) != 0:
                     ys = gaussian_kde(ctrls[j], *kdeargs)(xs)
-                    ax.plot(xs, ys, 'r-')
+                    ax.plot(xs, ys, '-', c='0.3')
                 if sum(dists[j]) != 0:
                     ys = gaussian_kde(dists[j], *kdeargs)(xs)
                     ax.plot(xs, ys, 'k-')

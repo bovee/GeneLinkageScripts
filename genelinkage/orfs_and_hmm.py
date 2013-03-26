@@ -6,7 +6,8 @@ from glob import iglob
 
 
 def find_classify_orfs(project, scaffolds, markov_model, \
-                       mgenemark_loc=None, hmmer_loc=None):
+                       mgenemark_loc=None, hmmer_loc=None,
+                       hmm_eval='10e-10'):
     #TODO: META_MOD should point to actual MetaGeneMark DB
     gene_file = project + '_hmm.txt'
     gff_file = project + '_mgm.gff'
