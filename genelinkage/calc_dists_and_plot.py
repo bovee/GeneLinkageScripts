@@ -202,15 +202,16 @@ def plot_dist(project, gene_list=None, filt_length=None, monte_draws=100, \
                         va='top', ha='center', transform=ax.transAxes)
                 ax.get_xaxis().set_visible(False)
                 ax.get_yaxis().set_visible(False)
-                if ctrl_rpo is not None:
-                    ys = gaussian_kde(ctrl_rpo, *kdeargs)(xs)
-                    ax.plot(xs, ys, '--', c='0.3')
                 if sum(ctrls[j]) != 0:
                     ys = gaussian_kde(ctrls[j], *kdeargs)(xs)
                     ax.plot(xs, ys, '-', c='0.3')
                 if sum(dists[j]) != 0:
                     ys = gaussian_kde(dists[j], *kdeargs)(xs)
                     ax.plot(xs, ys, 'k-')
+                if ctrl_rpo is not None:
+                    ys = gaussian_kde(ctrl_rpo, *kdeargs)(xs)
+                    ax.plot(xs, ys, '--', c='0.3')
+                    ax.set_ybound(0, 1.2 * np.max(ys))
     if save:
         dist_file.close()
     if plot:

@@ -73,10 +73,10 @@ def generate_tetra(project, scaffolds, min_len=2000):
         # want the first one (with the lowest E-value).
         if gff_name != p_gff_name:
             p_gff_name = gff_name
-            frq = dict([(s, 0) for s in seq_map.values()])
             cc = contigs[gene2contig[gff_name]]
             if len(cc) < min_len:
                 continue
+            frq = dict([(s, 0) for s in seq_map.values()])
             for ss in slid_win(str(cc.sequence).upper(), 4):
                 frq[seq_map.get(ss, 'NNNN')] += 1
 
