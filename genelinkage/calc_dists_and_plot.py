@@ -93,7 +93,7 @@ def samp_dist(gene2, gene1, gene_data=None, ctrl=False, monte_draws=None):
 
 
 def plot_dist(project, gene_list=None, filt_length=None, monte_draws=100, \
-              plot=True, save=False, bio_ctrl='rpoA'):
+              plot=True, save=False, bio_ctrl='rpoA', save_file=None):
     """
     gene_list: list of genes to compare. If None, compare all genes
         listed in the tetra file
@@ -142,15 +142,18 @@ def plot_dist(project, gene_list=None, filt_length=None, monte_draws=100, \
     po = Pool()
 
     if gene_ct.get(bio_ctrl, 0) > 5:
-        if bio_ctrl in gene_list:
-            del gene_list[gene_list.index(bio_ctrl)]
+        #if bio_ctrl in gene_list:
+        #    del gene_list[gene_list.index(bio_ctrl)]
         ctrl_rpo = samp_dist(bio_ctrl, bio_ctrl, gene_data, \
                                 monte_draws=monte_draws)
     else:
         ctrl_rpo = None
 
     if save:
-        fname = op.splitext(op.realpath(tetra_file))[0] + '_dists.txt'
+        if save_file is not None:
+            fname = op.splitext(op.realpath(tetra_file))[0] + save_file
+        else:
+            fname = op.splitext(op.realpath(tetra_file))[0] + '_dists.txt'
         dist_file = open(fname, 'w')
     if plot:
         gs = gridspec.GridSpec(len(gene_list), len(gene_list))
@@ -218,3 +221,12 @@ def plot_dist(project, gene_list=None, filt_length=None, monte_draws=100, \
         plt.gcf().set_size_inches(24, 24)
         fig_file = op.splitext(op.realpath(tetra_file))[0] + '.png'
         plt.savefig(fig_file, dpi=300, bbox_inches='tight')
+
+if __name__ == '__main__':
+    # run sensitivity tests on the monte carlo
+    proj = '/n/home04/bovee/PLFolder/GeneLinkage/MHLParams/' + \
+           'MahoneyLake7M_10e-10_2000_10'
+    for mtc in [100, 500, 1000, 5000, 10000]:
+        for i in range(5):
+            plot_dist(proj, filt_length=2000, monte_draws=mtc, plot=False, \
+                      save=True, save_file='test_' + str(i) + '_' + str(mtc))
