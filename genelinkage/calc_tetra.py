@@ -74,7 +74,7 @@ def generate_tetra(project, scaffolds, min_len=2000):
         if gff_name != p_gff_name:
             p_gff_name = gff_name
             cc = contigs[gene2contig[gff_name]]
-            if len(cc) < min_len:
+            if len(cc.sequence) < min_len:
                 continue
             frq = dict([(s, 0) for s in seq_map.values()])
             for ss in slid_win(str(cc.sequence).upper(), 4):
