@@ -27,6 +27,7 @@ def generate_tetra(project, scaffolds, min_len=2000):
 
     """
     #TODO: screed is only for python 2, so can't use this on py3
+    #TODO: also screed fails if two instances try to open the same file
     import screed
 
     gene_file = project + '_hmm.txt'
@@ -74,7 +75,7 @@ def generate_tetra(project, scaffolds, min_len=2000):
         if gff_name != p_gff_name:
             p_gff_name = gff_name
             cc = contigs[gene2contig[gff_name]]
-            if len(cc) < min_len:
+            if len(cc.sequence) < min_len:
                 continue
             frq = dict([(s, 0) for s in seq_map.values()])
             for ss in slid_win(str(cc.sequence).upper(), 4):
