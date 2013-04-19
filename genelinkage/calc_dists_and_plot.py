@@ -202,7 +202,7 @@ def plot_dist(project, gene_list=None, filt_length=None, monte_draws=100, \
                         '\np$_{b}$=' + '{:.2%}'.format(mwu2)
                 else:
                     txt = g1 + '$\\rightarrow$' + g2
-                ax.text(0.5, 0.95, txt, fontsize=12, \
+                ax.text(0.5, 0.95, txt, fontsize=6, \
                         va='top', ha='center', transform=ax.transAxes)
                 ax.get_xaxis().set_visible(False)
                 ax.get_yaxis().set_visible(False)
