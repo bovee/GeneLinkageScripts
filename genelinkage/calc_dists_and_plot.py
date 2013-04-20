@@ -223,6 +223,8 @@ def plot_dist(project, gene_list=None, filt_length=None, monte_draws=100, \
         fig_file = op.splitext(op.realpath(tetra_file))[0] + '.png'
         plt.savefig(fig_file, dpi=300, bbox_inches='tight')
 
+    del gene_data, gene_tetra, gene_ct, gene_ids, gene_names
+
 if __name__ == '__main__':
     # run sensitivity tests on the monte carlo
     proj = '/n/home04/bovee/PLFolder/GeneLinkage/MHLParams/MahoneyLake7M_10e-10_2000_10'
