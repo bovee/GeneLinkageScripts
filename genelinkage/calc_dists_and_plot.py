@@ -13,6 +13,8 @@ from scipy.stats import gaussian_kde  # , mannwhitneyu
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
+MULTIPROCESSING = False
+
 try:
     from rpy2.robjects import r, FloatVector
     ranksum = lambda a, b: r['wilcox.test'](FloatVector(a), FloatVector(b), \
@@ -139,7 +141,9 @@ def plot_dist(project, gene_list=None, filt_length=None, monte_draws=100, \
     else:
         gene_list = [g for g in gene_list if gene_ct[g] >= filt_length \
                      and g in gene_ct]
-    po = Pool()
+
+    if MULTIPROCESSING:
+        po = Pool()
 
     if gene_ct.get(bio_ctrl, 0) > 5:
         #if bio_ctrl in gene_list:
@@ -171,10 +175,12 @@ def plot_dist(project, gene_list=None, filt_length=None, monte_draws=100, \
                          monte_draws=monte_draws)
         ctrl_f = partial(samp_dist, gene1=g1, gene_data=gene_data, \
                          ctrl=True, monte_draws=monte_draws)
-        dists = po.map(dist_f, gene_list)
-        ctrls = po.map(ctrl_f, gene_list)
-        #dists = list(map(dist_f, gene_list))
-        #ctrls = list(map(ctrl_f, gene_list))
+        if MULTIPROCESSING:
+            dists = po.map(dist_f, gene_list)
+            ctrls = po.map(ctrl_f, gene_list)
+        else:
+            dists = list(map(dist_f, gene_list))
+            ctrls = list(map(ctrl_f, gene_list))
         for j, g2 in enumerate(gene_list):
             if ranksum is not None:
                 #mwu = mannwhitneyu(ctrls[j], dists[j])[1]
