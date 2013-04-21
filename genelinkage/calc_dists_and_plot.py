@@ -13,7 +13,7 @@ from scipy.stats import gaussian_kde  # , mannwhitneyu
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
-MULTIPROCESSING = False
+MULTIPROCESSING = True
 
 try:
     from rpy2.robjects import r, FloatVector
@@ -229,13 +229,16 @@ def plot_dist(project, gene_list=None, filt_length=None, monte_draws=100, \
         fig_file = op.splitext(op.realpath(tetra_file))[0] + '.png'
         plt.savefig(fig_file, dpi=300, bbox_inches='tight')
 
+    if multiprocessing:
+        po.close()
+        del po
     del gene_data, gene_tetra, gene_ct, gene_ids, gene_names
 
 if __name__ == '__main__':
     # run sensitivity tests on the monte carlo
     proj = '/n/home04/bovee/PLFolder/GeneLinkage/MHLParams/MahoneyLake7M_10e-10_2000_10'
-    for mtc in [100, 500, 1000, 5000]:
+    for mtc in [1000, 5000]:
         for i in range(5):
             plot_dist(proj, filt_length=5, monte_draws=mtc, plot=False, \
-                      save=True, save_file='test_' + str(i) + '_' + str(mtc) \
+                      save=True, save_file='test2_' + str(i) + '_' + str(mtc) \
                       + '.txt')
