@@ -59,7 +59,7 @@ if __name__ == '__main__':
         generate_tetra(project, args.scaffolds, min_len=args.min_ctg_len)
 
     if args.build_plot or args.build_dist or args.build_all:
-        M_DRAWS = 100  # number of Monte Carlo draws to do for controls
+        M_DRAWS = 500  # number of Monte Carlo draws to do for controls
         FILT_LEN = args.min_genes
 
         gene_list = ['psaA', 'psaB', 'psbA', 'psbB', 'pufM', 'pufL', 'pr',

@@ -84,7 +84,7 @@ def text_params_from_ang(a):
     return (ha, va, ang)
 
 
-def make_network_nice(folder, projects, cols=None):
+def make_network_nice(folder, projects, cols=None, fname='fig.svg'):
     prob_cut = 0.001
 
     lnk_genes = []
@@ -107,15 +107,15 @@ def make_network_nice(folder, projects, cols=None):
         cols = int(np.round(np.sqrt(len(projects))))
 
     # all genes compared
-    #tot_genes = sorted(set(i for j in anl_genes for i in j))
+    tot_genes = set(i for j in anl_genes for i in j)
     # only genes that have links somewhere
-    tot_genes = set()
-    for l_genes in lnk_genes:
-        for g1, g2, p in l_genes:
-            tot_genes.update([g1, g2])
+    #tot_genes = set()
+    #for l_genes in lnk_genes:
+    #    for g1, g2, p in l_genes:
+    #        tot_genes.update([g1, g2])
 
     #alternative A:
-    #tot_genes = sorted(tot_genes)
+    #sorted_genes = sorted(tot_genes)
 
     #alternative B: manually order the genes to prevent confusion
     sorted_genes = [i.strip() for i in """
@@ -138,7 +138,7 @@ def make_network_nice(folder, projects, cols=None):
     norm = mpl.colors.LogNorm(vmin=10e-10, vmax=prob_cut)
     p_val_to_c = lambda p: colormap(norm(p))
 
-    fig = plt.figure()
+    fig = plt.figure(figsize=(2,6))
     for proj, grey_labels, l_genes in zip(projects, anl_genes, lnk_genes):
         #ax = plt.subplot(gs[projects.index(proj)])
         ax = fig.add_subplot(int(np.ceil(len(projects) / cols)), cols, \
@@ -157,6 +157,7 @@ def make_network_nice(folder, projects, cols=None):
             ha, va, ang = text_params_from_ang(g_ang[g])
             ax.text(*g_pos[g], s=g, size=8, color='grey', va=va, \
                     ha=ha, rotation=ang)
+
         for g in black_labels:
             ha, va, ang = text_params_from_ang(g_ang[g])
             ax.text(*g_pos[g], s=g, size=8, color='black', va=va, \
@@ -168,10 +169,12 @@ def make_network_nice(folder, projects, cols=None):
               lw=0.3, arrowstyle='simple,head_length=8,head_width=4')
             ax.add_patch(arrow)
 
+
         #TODO: turn off
-        ax.text(0.5, 0.5, proj, ha='center', va='center',
-                transform=plt.gca().transAxes)
+        #ax.text(0.5, 0.5, proj, ha='center', va='center',
+        #        transform=plt.gca().transAxes)
     cax = fig.add_axes([0.33, 0.05, 0.33, 0.010])
     mpl.colorbar.ColorbarBase(cax, cmap=colormap, norm=norm, \
                               orientation='horizontal')
+    plt.savefig(fname, bbox_inches='tight')
     plt.show()
